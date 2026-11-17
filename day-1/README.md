@@ -27,7 +27,22 @@ Most demos talk to a model. Depending on the script you need one (or more) of:
 | **LM Studio** (`127.0.0.1:1234`, OpenAI‑compatible) | Install, download `qwen3.5-4b`, start the local server | `getting_started_lm_studio.py`, `three_local_backends.py` |
 | **MLX** | Apple‑Silicon only; weights load straight from disk | `three_local_backends.py` |
 | **llama.cpp** | `pip install llama-cpp-python`, plus a local `.gguf` | `logit_probabilities.py` |
+| **oMLX** (`127.0.0.1:8000`, OpenAI‑compatible) | Apple‑Silicon only: install from <https://github.com/jundot/omlx>, set an API key, put it in the repo‑root `.env` as `OMLX_API_KEY`, then download the models (below) | every `*_omlx.py` twin |
 | **Cloud APIs** | An API key per provider (see below) | `basic_*.py`, `*_groq.py`, `together_chat.py` |
+
+**No Ollama?** Every Ollama, LM Studio and MLX demo has an **oMLX twin** next to it, named `*_omlx.py` (Ollama or
+LM Studio in the name becomes `omlx`). oMLX serves models straight from the Hugging Face cache, named `org--repo`;
+after downloading, use "Reload models" on its admin page (or restart it). The Day‑1 twins use these (~10 GB in total):
+
+```
+hf download mlx-community/Qwen3.5-4B-MLX-4bit             # the workhorse: chat and vision
+hf download mlx-community/Qwen3.5-0.8B-4bit               # model_test_omlx.py
+hf download mlx-community/Qwen3.5-2B-8bit                 # mlx_quick_test_omlx.py
+hf download mlx-community/all-MiniLM-L6-v2-bf16           # embeddings
+hf download mlx-community/embeddinggemma-300m-bf16        # embeddings
+hf download mlx-community/whisper-large-v3-turbo-asr-4bit # speech to text
+hf download mlx-community/chatterbox-turbo-fp16           # text to speech and voice cloning (not 8-bit: it can't clone)
+```
 
 **Recommended models** (newer is almost always better — anything older than ~3
 months is "too old"):
@@ -70,26 +85,35 @@ the Spark scripts, so they work without a `.env`. It is shared by the class and 
 | `simple_token_test.py` | **Tokenisation.** Loads the `Qwen/Qwen3.5-0.8B` tokenizer, encodes *"Attention Is All You Need"*, prints each token → ID, then decodes back. Shows why an LLM sees numbers, not letters (the spelling/maths question). Needs `pip install transformers`. |
 | `simple_token_test2.py` | The same tokeniser on a **bilingual** phrase (*"Welcome to the Brandenburg Gate, Bienvenidos a la Puerta de Brandeburgo"*) — see how English vs. Spanish words split into different numbers of subword tokens, and what happens to *Nueva York*. |
 | `embedding_demo.py` | **Embeddings + cosine similarity.** Embeds `tea / coffee / mud / dirt` with `all-minilm` (via Ollama) and prints the full similarity matrix as a grid — "tea"≈"coffee", "mud"≈"dirt". Needs `pip install numpy tabulate`. |
+| `embedding_demo_omlx.py` | The **oMLX twin** of `embedding_demo.py`: the same grid, with the all‑MiniLM embeddings served by oMLX (`/v1/embeddings`). Needs `pip install openai python-dotenv numpy tabulate`. |
 | `embedding_example.py` | An interactive twin of the above: type a question and it ranks a fixed list of sentences by cosine similarity, reporting the mean, standard deviation and each result's **z‑score** so outliers stand out. Talks to Ollama's REST embeddings endpoint directly. |
+| `embedding_example_omlx.py` | The **oMLX twin** of `embedding_example.py`: the same z‑score ranking, with EmbeddingGemma served by oMLX's REST endpoint (still raw `requests`). |
 | `word_embeddings.py` | **Visualising meaning.** Embeds the system dictionary with `sentence-transformers`, finds the nearest neighbours of a set of target words, reduces to 3‑D with **PCA**, and renders an interactive **Plotly** scatter. Caches vectors in `embeddings.pkl`. Needs `pip install sentence-transformers scikit-learn plotly`. |
 | `image_embeddings.py` | **Lab: it's not only text you can embed.** CLIP puts photos and sentences in the same embedding space, so a sentence can find a photo in `day-1/data/`. `python image_embeddings.py --faces` embeds faces of public figures from the LFW dataset (~200 MB download) and checks whether each face's nearest neighbour is the same person. Needs `pip install sentence-transformers pillow scikit-learn`. |
 | `face_recognition_demo.py` | **Lab: face recognition with your webcam.** Put a selfie in `day-1/faces/` named after you (the folder is git-ignored), run it, and the webcam labels you live using ArcFace face embeddings and cosine similarity (same person ≈ 0.5–0.8, others ≈ 0.1–0.3). `python face_recognition_demo.py photo.jpg` labels a photo instead of the webcam. Needs `pip install insightface onnxruntime opencv-python` (the model, ~280 MB, downloads on first run). Only use photos of people who have agreed. |
 | `3d_plot.html` | A saved example of the Plotly 3‑D output from `word_embeddings.py` — open it in a browser without running anything. |
 | `logit_probabilities.py` | **Decoding, made visible.** A Gradio app (on `llama-cpp` + a local GGUF) that shows the next‑token probability distribution as a table and pie chart, lets you inject any candidate token by rank to walk "the path not taken", and surfaces the stop‑token probability — the canonical "*why doesn't it stop?*" demo. Forces Qwen3 no‑think mode. Edit `DEFAULT_MODEL_PATH` to point at your own `.gguf`. Needs `pip install gradio llama-cpp-python plotly numpy`. |
+| `logit_probabilities_omlx.py` | The **oMLX twin** of `logit_probabilities.py`: the same Gradio explorer, with the probabilities taken from oMLX's `logprobs` (top 20 candidates, the most it returns) instead of llama.cpp's logits, so no `.gguf` is needed. oMLX's log‑probs are at temperature 1; the app applies your temperature to the 20 candidates, so other temperatures are an estimate. A candidate that is only part of a character can't be injected. Needs `pip install openai python-dotenv gradio plotly`. |
 
 ## 3. Running models locally
 
 | Script | What it shows |
 |---|---|
 | `getting_started_ollama.py` | The smallest possible Ollama call — one `POST` to `/api/generate`. |
+| `getting_started_omlx.py` | The smallest possible **oMLX** call — one `POST` to `/v1/chat/completions` with the API key as a Bearer token. Reads `OMLX_API_KEY` from the environment only (not `.env`) and asks `Qwen3.8-27B-oQ4e-mtp`; change the model to any id from `http://127.0.0.1:8000/v1/models`. |
 | `getting_started_ollama_params.py` | The same call with the **parameters** that matter spelled out: `temperature`, `top_p`, `top_k`, `num_predict`, `seed`, `num_ctx`. |
+| `getting_started_omlx_params.py` | The **oMLX twin**: the same parameters on oMLX (`max_tokens` instead of `num_predict`; no `num_ctx`, because oMLX sizes the context itself), thinking off via `chat_template_kwargs`. Reads `OMLX_API_KEY` from the environment only. |
 | `getting_started_lm_studio.py` | The smallest possible **LM Studio** call (OpenAI‑compatible `/v1/chat/completions` on port 1234). |
 | `three_local_backends.py` | The same prompt through **three local backends** — Ollama, LM Studio and MLX — side by side. Note how thinking mode is toggled differently per backend (`think=False`, `/no_think`, `enable_thinking=False`). |
 | `local_performance_demo.py` | A timing harness: runs a batch of multilingual "difficult" questions through `qwen3.5:4b` (thinking off, `temperature=0`) and prints the latency of each — get a feel for size vs. speed. |
+| `local_performance_demo_omlx.py` | The **oMLX twin**: the same questions and timings on oMLX, plus oMLX's own numbers from the `usage` block — time to first token and prompt/generation tokens per second. |
 | `mlx_quick_test.py` | The **presenter's MLX version** of the same idea: eight short questions in six languages to LiquidAI's LFM2.5-1.2B, greedy so every run gives the same answers, timed per question. Uses LM Studio's copy if you have one, otherwise downloads it (~1.3 GB). Apple Silicon only; needs `pip install mlx-lm`. |
+| `mlx_quick_test_omlx.py` | The **oMLX twin**: the same eight greedy questions, served by oMLX instead of loading weights with `mlx-lm`. oMLX has no LFM2.5, so it uses Qwen3.5‑2B 8‑bit (thinking off). Needs `pip install openai python-dotenv`. |
 | `quantisation_taste_test.py` | **Lab: quantisation taste test.** The same four prompts through `qwen3.5:4b` at Q4_K_M (the default), Q8_0 and BF16, with the size and tokens/sec of each. Pull the extra two first (`ollama pull qwen3.5:4b-q8_0`, `ollama pull qwen3.5:4b-bf16`); any model you pass on the command line replaces the list. |
+| `quantisation_taste_test_omlx.py` | The **oMLX twin**: the same prompts through Qwen3.5 at **MLX 4‑bit, 8‑bit and BF16** (0.8B and 2B by default; `python quantisation_taste_test_omlx.py 4b` for 4B, or give full model names). Download the variants with `hf download mlx-community/Qwen3.5-2B-8bit` etc. (sizes are in the script's docstring), then reload oMLX. Reads `OMLX_API_KEY` from the environment only. |
 | `openai_everywhere.py` | **Lab: one script, many endpoints.** One OpenAI‑SDK call sent to Ollama, LM Studio, the class Spark and Together — only `base_url`, key and model change. Prints time and tokens/sec, so it doubles as a laptop‑vs‑Spark speed race. `python openai_everywhere.py spark` runs a single endpoint. Keys come from `.env`. |
 | `model_test.py` | **Lab: test models on your own questions.** Five tricky questions, each with an automatic check, run against two models with thinking off and on. Prints the score, how many answers **ran out of tokens while still thinking** (a small reasoning model can think forever), and the time. Scores vary between runs: run it twice. |
+| `model_test_omlx.py` | The **oMLX twin**: the same five checked questions, thinking off and on, against Qwen3.5 0.8B and 4B on oMLX. Pass model ids from `/v1/models` to test others, `--all` for every chat model oMLX serves, `--all --big` to include the large ones. |
 
 ## 4. Calling the cloud providers
 
@@ -116,8 +140,11 @@ different model name or `base_url`.
 | Script | What it shows |
 |---|---|
 | `vision_demo_ollama.py` | **Multimodal.** Sends a local `image.jpg` plus a prompt to a vision model (`qwen3.6:27b`) and asks it to describe the image and guess where it was taken. Drop in any image. |
+| `vision_demo_omlx.py` | The **oMLX twin**: the same prompt and `image.jpg` (from the folder you run it in), described by Qwen3.5‑4B on oMLX (it is a vision model too). Needs `pip install openai python-dotenv`. |
 | `ai_astrology.py` | A small end‑to‑end app: prompts for a name and star sign, then has `qwen3.5:4b` (via Ollama) write a horoscope. Thinking is deliberately left **on** and the model's reasoning is rendered separately with `rich`. Needs `pip install ollama rich`. |
+| `ai_astrology_omlx.py` | The **oMLX twin**: the same Maude and prompts on Qwen3.5‑4B via oMLX, thinking still **on** and streamed live, the reasoning shown separately; `--no-think` turns it off. Needs `pip install openai python-dotenv rich`. |
 | `ai_astrology-de.py` | **Das lustige deutsche Horoskop.** The same app in German: Oma Gerda, a Berlin astrologer with *Berliner Schnauze*, predicts punctual S-Bahns, a Bürgeramt appointment and the perfect Currywurst. Only the prompts differ from `ai_astrology.py`, so it shows how much of an app's character lives in the system prompt. Needs `pip install ollama rich`. |
+| `ai_astrology-de_omlx.py` | The **oMLX twin** of the German version: same Oma Gerda, same as `ai_astrology_omlx.py` otherwise (`--no-think` too). Needs `pip install openai python-dotenv rich`. |
 | `ai_astrology_groq.py` | The cloud twin of the above, swapping Ollama for **Groq** (`qwen/qwen3-32b`, `reasoning_effort="none"`). Keep the two in sync if you change one. |
 
 ---
@@ -132,11 +159,18 @@ different model name or `base_url`.
 6. The `basic_*.py` family — the same task across every major cloud provider.
 7. `vision_demo_ollama.py` and `ai_astrology.py` — put it together.
 
+Without Ollama, run the `*_omlx.py` twin of each step instead (`embedding_demo_omlx.py`, `logit_probabilities_omlx.py`,
+`getting_started_omlx.py`, `vision_demo_omlx.py`, `ai_astrology_omlx.py`, …).
+
 ## Voice
 
 | Script | What it shows |
 |---|---|
 | `tts_hello.py` | **Text to speech** in five lines: Chatterbox-Turbo (~3 GB) on MLX says "Hello World" (or `python tts_hello.py "your text"`), saves `day-1/output/output_000.wav` and plays it. Apple Silicon only; needs `pip install mlx-audio`. |
+| `tts_hello_omlx.py` | The **oMLX twin**: the same "Hello World" from Chatterbox‑Turbo (fp16), served by oMLX's `/v1/audio/speech`; writes `day-1/output/output_omlx.wav` and plays it. The first run takes a minute or two while oMLX loads the model. After a cloning demo, oMLX keeps speaking in the cloned voice until you unload Chatterbox on its admin page (or restart oMLX). Needs `pip install openai python-dotenv sounddevice numpy`. |
 | `stt_transcribe.py` | **Speech to text**: Whisper large-v3-turbo on MLX transcribes the file `tts_hello.py` wrote, or any recording: `python stt_transcribe.py some.wav`. Needs `pip install mlx-audio`. |
+| `stt_transcribe_omlx.py` | The **oMLX twin**: Whisper large‑v3‑turbo (4‑bit) served by oMLX's `/v1/audio/transcriptions`; by default it reads the file `tts_hello_omlx.py` wrote. Needs `pip install openai python-dotenv`. |
 | `tts_clone.py` | **Voice cloning**: Chatterbox-Turbo reads a welcome in the voice of a short reference clip, `day-1/data/morgan-freeman-voice-sample.wav` by default, or pass your own 5–15 s WAV. Only clone a voice with its owner's consent. Needs `pip install mlx-audio`. |
+| `tts_clone_omlx.py` | The **oMLX twin**: the same clone (Morgan Freeman by default, or any WAV you pass) with Chatterbox‑Turbo on oMLX. Whisper on oMLX first transcribes the reference clip, because oMLX wants its transcript (`ref_text`) along with the clip. Writes `day-1/output/morgan_omlx.wav` and plays it. Needs `pip install openai python-dotenv sounddevice numpy`. |
 | `voice_astrology.py` | **Lab: Voice AI Astrology.** Say your name and star sign; Whisper transcribes it, Maude (Qwen3.6 on the class Spark) writes a horoscope, and Kokoro, or a **cloned voice** via Chatterbox, reads it out. Set `VOICE_CLIP` to a 5–15 s recording to clone it: `day-1/data/roosevelt-voice-sample.wav` is Theodore Roosevelt in 1912 (public domain). Needs `pip install sounddevice numpy openai python-dotenv` and `SPARK_API_KEY` in `.env`; `python voice_astrology.py some.wav` uses a recording instead of the microphone. |
+| `voice_astrology_omlx.py` | The **oMLX twin**: speak to Maude and she speaks back, with Whisper, Qwen3.5‑4B (thinking off) and Chatterbox‑Turbo all on oMLX instead of the class Spark, so no Spark key is needed. `VOICE_CLIP` clones a voice; without it Chatterbox's built‑in voice speaks (oMLX has no Kokoro), or the last cloned voice if Chatterbox hasn't been unloaded since. `python voice_astrology_omlx.py some.wav` uses a recording instead of the microphone. Needs `pip install openai python-dotenv sounddevice numpy`. |

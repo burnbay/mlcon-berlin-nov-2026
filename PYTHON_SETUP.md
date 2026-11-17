@@ -85,8 +85,10 @@ python -m pip install --upgrade pip
 pip install -r requirements.txt
 ```
 
-This installs the superset that lets **every** Day-1 script run. A few packages are
-large or slow to build:
+This installs the superset that lets **every** Day-1 and Day-2 script run, the `*_omlx.py`
+twins included. The one exception is `day-2/chatterbox_turbo_tts.py`: its `chatterbox-tts`
+package pins its own torch, transformers and gradio versions, so give it a separate venv.
+A few packages are large or slow to build:
 
 - `tensorflow`, `torch` — big downloads (hundreds of MB each).
 - `llama-cpp-python` — compiles native code, so it needs a C/C++ toolchain
@@ -126,6 +128,10 @@ prerequisites table in [`day-1/README.md`](day-1/README.md)):
   `ollama pull qwen3.5:4b` and `ollama pull all-minilm`.
 - **LM Studio** (`127.0.0.1:1234`) — install, download a model, start the local
   server.
+- **oMLX** (`127.0.0.1:8000`, Apple Silicon only) — install from
+  <https://github.com/jundot/omlx>, set an API key and put it in `.env` as
+  `OMLX_API_KEY`. Every Ollama, LM Studio and MLX demo has a `*_omlx.py` twin; the
+  models to download are listed in the day-1 and day-2 READMEs.
 
 ## Cloud API keys
 

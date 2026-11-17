@@ -57,12 +57,19 @@ A demonstration client that uses the MCP server with a local Ollama LLM (instead
    - Calls `get_weather("Tokyo")` for current conditions
    - Provides comprehensive answer
 
+### 3. `test_mcp_client_omlx.py`
+The **oMLX twin** of `test_mcp_client_ollama.py`, for Macs without Ollama: the same client, agentic loop and
+three questions, but the MCP tools are converted to OpenAI `tools` and the LLM is Qwen3.5-4B
+(`mlx-community--Qwen3.5-4B-MLX-4bit`) served by [oMLX](https://github.com/jundot/omlx) on
+`http://127.0.0.1:8000/v1`. Tool results go back as `role: "tool"` messages with their `tool_call_id`.
+
 ## Prerequisites
 
 ### 1. Install Dependencies
 ```bash
-pip install mcp requests httpx
+pip install "mcp<2" requests httpx
 ```
+`mcp` 2.x dropped the `@app.list_tools()` / `@app.call_tool()` API that `mcp_server.py` uses, so stay on 1.x.
 
 ### 2. Install and Run Ollama
 ```bash
@@ -81,6 +88,14 @@ ollama pull qwen2.5:3b
 - `mistral:7b` - Good function calling, balanced
 - `llama3.1:8b` - Strong reasoning, larger model
 
+### Or: run oMLX instead of Ollama (Apple Silicon)
+Install oMLX from <https://github.com/jundot/omlx>, set an API key, and put it in the repo-root `.env` as
+`OMLX_API_KEY`. Download the model, then use "Reload models" on oMLX's admin page:
+```bash
+hf download mlx-community/Qwen3.5-4B-MLX-4bit
+pip install python-dotenv
+```
+
 ## Usage
 
 ### Running the Demo
@@ -93,6 +108,11 @@ ollama serve
 2. **Run the MCP demo**:
 ```bash
 python test_mcp_client_ollama.py
+```
+
+   Or, with oMLX running instead of Ollama:
+```bash
+python test_mcp_client_omlx.py
 ```
 
 The script will:

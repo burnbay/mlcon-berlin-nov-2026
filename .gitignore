@@ -8,6 +8,9 @@ TEACHER_NOTES.md
 .idea/
 /day-1/embeddings.pkl
 /day-2/chroma_db/
+/day-2/chroma_db_omlx/
+# SQLite DB payroll.py builds from the Kaggle download (~100 MB)
+/day-2/city_payroll.db
 
 # Face recognition lab: attendees' own photos, never commit
 /day-1/faces/

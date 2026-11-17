@@ -1,8 +1,9 @@
 # MLCon Berlin 2026 — Hands-On GenAI Development Bootcamp
 #
-# Every script in day-1/ is standalone and only imports what that one demo needs,
+# Every script in day-1/ and day-2/ is standalone and only imports what that one demo needs,
 # so you never need *all* of these at once. This file is the convenience superset:
-# install it into a venv and every Day-1 script will run. See PYTHON_SETUP.md.
+# install it into a venv and every Day-1 and Day-2 script will run (all but one: see the
+# chatterbox note at the bottom). The *_omlx.py twins need nothing extra. See PYTHON_SETUP.md.
 
 # --- Core: local + cloud model calls, embeddings (most demos) ---
 python-dotenv
@@ -42,3 +43,20 @@ lmstudio
 mlx-vlm; platform_machine == "arm64" and sys_platform == "darwin"
 mlx-lm; platform_machine == "arm64" and sys_platform == "darwin"      # mlx_quick_test.py
 mlx-audio; platform_machine == "arm64" and sys_platform == "darwin"   # tts_hello.py, stt_transcribe.py, tts_clone.py
+
+# --- Day-2 extras: PDFs, RAG, scraping, SQL, sentiment, MCP ---
+pymupdf            # read_pdf.py (imported as fitz)
+pillow             # find_beer.py draws the bounding boxes
+chromadb           # rag_alice_in_wonderland_chromadb.py
+tiktoken           # grimm_fairy_tales_rag_demo.py
+beautifulsoup4     # scrape.py, scrape_gdpr_article*.py
+flask              # gdpr_viewer.py
+pandas             # payroll.py and the Kaggle sentiment demos
+kagglehub          # downloads the Kaggle datasets (payroll.py, analyse_sentiment_kaggle.py, ...)
+textblob           # analyse_sentiment_people_over_time.py, kaggle_summary_complete.py
+soundfile          # chatterbox_turbo_tts.py
+httpx              # MCP/mcp_server.py
+mcp<2              # MCP/: mcp 2.x dropped the API mcp_server.py uses
+
+# Not included: chatterbox_turbo_tts.py also needs `pip install chatterbox-tts`, which pins its
+# own torch, transformers and gradio versions. Give it a separate venv (or use chatterbox_tts_omlx.py).
